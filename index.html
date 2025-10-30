@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Probabilidad: La Ruleta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #f3f4f6;
+        }
+        
+        #roulette-wheel {
+            transition: transform 1.5s cubic-bezier(0.33, 1, 0.68, 1);
+        }
+
+        #wheel-container::before {
+            content: '▼';
+            font-size: 2.5rem;
+            color: #f9fafb;
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .tree-line {
+            stroke: #6b7280;
+            stroke-width: 2;
+        }
+        .tree-node {
+            fill: #374151;
+            stroke: #f59e0b;
+            stroke-width: 2;
+        }
+        .tree-text {
+            fill: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        }
+        .tree-prob {
+            fill: #d1d5db;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-style: italic;
+        }
+        .tree-outcome {
+            fill: #f59e0b;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+      
+        details > summary {
+            cursor: pointer;
+            padding: 1rem;
+            background-color: #1f2937;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        details > summary:hover {
+            background-color: #374151;
+        }
+        details[open] > summary {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        .details-content {
+            padding: 1.5rem;
+            background-color: #1f2937;
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+            border-top: 1px solid #374151;
+        }
+
+      
+        .roulette-number {
+            position: absolute;
+          
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            width: 32px;
+            height: 32px;
+            margin-top: -16px;
+            margin-left: -16px;
+            
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 700;
+            color: white;
+          
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <header class="text-center mb-8">
+        <h1 class="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-yellow-400">
+            Simulador de Probabilidad: La Ruleta
+        </h1>
+        <p class="text-xl text-gray-300 mt-2">Un caso de estudio visual sobre eventos independientes y la falacia del jugador.</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-gray-800 p-6 rounded-lg shadow-2xl overflow-hidden">
+                <h2 class="text-2xl font-bold text-center mb-6 text-yellow-400">Simulador de Ruleta Americana</h2>
+              
+                <div id="wheel-container" class="relative w-64 h-64 md:w-80 md:h-80 mx-auto mb-8">
+                    <div id="roulette-wheel" class="w-full h-full rounded-full border-8 border-gray-900 shadow-inner flex items-center justify-center relative">
+                        <div class="w-24 h-24 md:w-32 md:h-32 bg-gray-900 rounded-full border-4 border-yellow-500 flex items-center justify-center shadow-xl z-10">
+                            <span id="result-display" class="text-3xl md:text-4xl font-black uppercase"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mb-6">
+                    <button id="spin-button" class="w-full md:w-1/2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-2xl font-bold py-4 px-8 rounded-lg shadow-lg transform transition hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Girar
+                    </button>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-center">Tablero de Apuestas (Probabilidades)</h3>
+                    <div class="grid grid-cols-3 gap-3 text-center text-lg font-bold">
+                        <div class="bg-red-600 p-4 rounded-lg shadow">ROJO (18/38)</div>
+                        <div class="bg-gray-900 border-2 border-gray-700 p-4 rounded-lg shadow">NEGRO (18/38)</div>
+                        <div class="bg-green-600 p-4 rounded-lg shadow">VERDE (2/38)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-800 p-6 rounded-lg shadow-2xl">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-400">Historial de Giros</h2>
+                <p class="text-gray-400 mb-4">Observa los resultados en tiempo real. ¿Ves alguna "racha"?</p>
+                <div id="history-list" class="h-48 bg-gray-900 p-3 rounded-md overflow-y-auto flex flex-row flex-wrap-reverse gap-2 content-start">
+                </div>
+            </div>
+
+        </div>
+
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-gray-800 p-6 rounded-lg shadow-2xl sticky top-6">
+                <h2 class="text-2xl font-bold mb-6 text-yellow-400 text-center">Análisis de Probabilidad</h2>
+                <details class="mb-4">
+                    <summary>Caso 1: Probabilidad de un Giro</summary>
+                    <div class="details-content space-y-2 text-gray-300">
+                        <p>En una Ruleta Americana con 38 casillas:</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li><strong class="text-red-500">P(Rojo):</strong> 18/38 ≈ 47.37%</li>
+                            <li><strong class="text-gray-400">P(Negro):</strong> 18/38 ≈ 47.37%</li>
+                            <li><strong class="text-green-500">P(Verde):</strong> 2/38 ≈ 5.26% (La ventaja de la casa)</li>
+                        </ul>
+                    </div>
+                </details>
+              
+                <details class="mb-4">
+                    <summary>Caso 2: Perder 3 veces seguidas</summary>
+                    <div class="details-content space-y-2 text-gray-300">
+                        <p>Apostamos al Rojo (Ganar = G, Perder = P).</p>
+                        <p>P(G) = 18/38</p>
+                        <p>P(P) = 20/38 (Negro o Verde)</p>
+                        <p class="font-bold text-white">Probabilidad de Perder 3 veces (P-P-P):</p>
+                        <p class="text-sm">(20/38) × (20/38) × (20/38)</p>
+                        <p>= 8000 / 54872</p>
+                        <p class="text-lg font-bold text-yellow-400">≈ 14.57%</p>
+                    </div>
+                </details>
+                
+                <details class="mb-4" open>
+                    <summary>Caso 3: Diagrama de Árbol (3 Giros)</summary>
+                    <div class="details-content">
+                        <p class="text-center text-gray-400 mb-4">Visualización de 8 resultados posibles (G=Ganar, P=Perder).</p>
+                        <svg viewBox="0 0 800 600" class="w-full">
+                            <!-- Nivel 0 -->
+                            <circle cx="50" cy="300" r="15" class="tree-node" />
+                            <text x="50" y="305" class="tree-text" text-anchor="middle" font-weight="bold">Inicio</text>
+                            
+                            <!-- Nivel 1 -->
+                            <line x1="50" y1="300" x2="250" y2="150" class="tree-line" />
+                            <text x="150" y="215" class="tree-prob">P=18/38</text>
+                            <circle cx="250" cy="150" r="15" class="tree-node" />
+                            <text x="250" y="155" class="tree-text" text-anchor="middle" font-weight="bold">G</text>
+                            
+                            <line x1="50" y1="300" x2="250" y2="450" class="tree-line" />
+                            <text x="150" y="385" class="tree-prob">P=20/38</text>
+                            <circle cx="250" cy="450" r="15" class="tree-node" />
+                            <text x="250" y="455" class="tree-text" text-anchor="middle" font-weight="bold">P</text>
+                            
+                            <!-- Nivel 2 -->
+                            <line x1="250" y1="150" x2="450" y2="75" class="tree-line" />
+                            <text x="350" y="102" class="tree-prob">P=18/38</text>
+                            <circle cx="450" cy="75" r="15" class="tree-node" />
+                            <text x="450" y="80" class="tree-text" text-anchor="middle">GG</text>
+                            
+                            <line x1="250" y1="150" x2="450" y2="225" class="tree-line" />
+                            <text x="350" y="198" class="tree-prob">P=20/38</text>
+                            <circle cx="450" cy="225" r="15" class="tree-node" />
+                            <text x="450" y="230" class="tree-text" text-anchor="middle">GP</text>
+                            
+                            <line x1="250" y1="450" x2="450" y2="375" class="tree-line" />
+                            <text x="350" y="402" class="tree-prob">P=18/38</text>
+                            <circle cx="450" cy="375" r="15" class="tree-node" />
+                            <text x="450" y="380" class="tree-text" text-anchor="middle">PG</text>
+                            
+                            <line x1="250" y1="450" x2="450" y2="525" class="tree-line" />
+                            <text x="350" y="498" class="tree-prob">P=20/38</text>
+                            <circle cx="450" cy="525" r="15" class="tree-node" />
+                            <text x="450" y="530" class="tree-text" text-anchor="middle">PP</text>
+                            
+                            <!-- Nivel 3 y Resultados -->
+                            <!-- Ruta GGG -->
+                            <line x1="450" y1="75" x2="650" y2="37.5" class="tree-line" />
+                            <text x="710" y="42.5" class="tree-outcome">GGG</text>
+                            <text x="720" y="62.5" class="tree-prob">10.6%</text>
+
+                            <!-- Ruta GGP -->
+                            <line x1="450" y1="75" x2="650" y2="112.5" class="tree-line" />
+                            <text x="710" y="117.5" class="tree-outcome">GGP</text>
+                            <text x="720" y="137.5" class="tree-prob">11.8%</text>
+
+                            <!-- Ruta GPG -->
+                            <line x1="450" y1="225" x2="650" y2="187.5" class="tree-line" />
+                            <text x="710" y="192.5" class="tree-outcome">GPG</text>
+                            <text x="720" y="212.5" class="tree-prob">11.8%</text>
+
+                            <!-- Ruta GPP -->
+                            <line x1="450" y1="225" x2="650" y2="262.5" class="tree-line" />
+                            <text x="710" y="267.5" class="tree-outcome">GPP</text>
+                            <text x="720" y="287.5" class="tree-prob">13.1%</text>
+                            
+                            <!-- Ruta PGG -->
+                            <line x1="450" y1="375" x2="650" y2="337.5" class="tree-line" />
+                            <text x="710" y="342.5" class="tree-outcome">PGG</text>
+                            <text x="720" y="362.5" class="tree-prob">11.8%</text>
+
+                            <!-- Ruta PGP -->
+                            <line x1="450" y1="375" x2="650" y2="412.5" class="tree-line" />
+                            <text x="710" y="417.5" class="tree-outcome">PGP</text>
+                            <text x="720" y="437.5" class="tree-prob">13.1%</text>
+
+                            <!-- Ruta PPG -->
+                            <line x1="450" y1="525" x2="650" y2="487.5" class="tree-line" />
+                            <text x="710" y="492.5" class="tree-outcome">PPG</text>
+                            <text x="720" y="512.5" class="tree-prob">13.1%</text>
+
+                            <!-- Ruta PPP -->
+                            <line x1="450" y1="525" x2="650" y2="562.5" class="tree-line" />
+                            <text x="710" y="567.5" class="tree-outcome">PPP</text>
+                            <text x="720" y="587.5" class="tree-prob font-bold">14.6%</GPP</text>
+                        </svg>
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Concepto Clave: La Falacia del Jugador</summary>
+                    <div class="details-content space-y-3 text-gray-300">
+                        <p class="font-bold text-white">El Error Común:</p>
+                        <p>"Han salido 5 Negros seguidos. ¡El Rojo *tiene* que salir ahora!"</p>
+                        <p class="font-bold text-white">La Verdad (Eventos Independientes):</p>
+                        <p>La ruleta no tiene memoria. El resultado de giros pasados (así sean 100 negros seguidos) no tiene <strong class="text-yellow-400">NINGÚN</strong> efecto en el siguiente giro.</p>
+                        <p>La probabilidad del Giro 6, sin importar el pasado, sigue siendo:</p>
+                        <p><strong class="text-red-500">P(Rojo) ≈ 47.37%</strong></p>
+                        <p>¡El diagrama de árbol lo prueba! Las probabilidades (18/38 y 20/38) son las <strong class="text-yellow-400">mismas en cada nivel</strong>.</p>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const spinButton = document.getElementById('spin-button');
+            const resultDisplay = document.getElementById('result-display');
+            const historyList = document.getElementById('history-list');
+            const rouletteWheel = document.getElementById('roulette-wheel');
+
+            const PROB_GREEN = 2 / 38;
+            const PROB_RED = 18 / 38;
+            const PROB_BLACK = 18 / 38;
+
+            const SLOT_ANGLE = 360 / 38; 
+            const slots = [
+                { type: 'G', value: '0' }, { type: 'R', value: '27' }, { type: 'B', value: '10' },
+                { type: 'R', value: '25' }, { type: 'B', value: '29' }, { type: 'R', value: '12' },
+                { type: 'B', value: '8' }, { type: 'R', value: '19' }, { type: 'B', value: '31' },
+                { type: 'R', value: '18' }, { type: 'B', value: '6' }, { type: 'R', value: '21' },
+                { type: 'B', value: '33' }, { type: 'R', value: '16' }, { type: 'B', value: '4' },
+                { type: 'R', value: '23' }, { type: 'B', value: '35' }, { type: 'R', value: '14' },
+                { type: 'B', value: '2' }, { type: 'G', value: '00' }, { type: 'B', value: '28' },
+                { type: 'R', value: '9' }, { type: 'B', value: '26' }, { type: 'R', value: '30' },
+                { type: 'B', value: '11' }, { type: 'R', value: '7' }, { type: 'B', value: '20' },
+                { type: 'R', value: '32' }, { type: 'B', value: '17' }, { type: 'R', value: '5' },
+                { type: 'B', value: '22' }, { type: 'R', value: '34' }, { type: 'B', value: '15' },
+                { type: 'R', value: '3' }, { type: 'B', value: '24' }, { type: 'R', value: '36' },
+                { type: 'B', value: '13' }, { type: 'R', value: '1' }
+            ];
+
+            let currentRotation = 0;
+
+            function createFullWheel() {
+                rouletteWheel.querySelectorAll('.roulette-number').forEach(el => el.remove());
+                
+                const gradientParts = [];
+                const isMobile = window.innerWidth < 768;
+                const radiusInRem = isMobile ? 6.5 : 8.5; // 104px o 136px
+
+                slots.forEach((slot, i) => {
+                    const angleStart = SLOT_ANGLE * i;
+                    const angleEnd = SLOT_ANGLE * (i + 1);
+                    let color;
+
+                    if (slot.type === 'G') {
+                        color = '#10b981';
+                    } else if (slot.type === 'R') {
+                        color = '#ef4444';
+                    } else {
+                        color = '#1f2937';
+                    }
+
+                    gradientParts.push(`${color} ${angleStart}deg ${angleEnd}deg`);
+              
+                    const numberDiv = document.createElement('div');
+                    numberDiv.className = 'roulette-number';
+                    numberDiv.textContent = slot.value;
+                  
+                    const numberAngle = angleStart + (SLOT_ANGLE / 2);
+                    numberDiv.style.transform = `rotate(${numberAngle}deg) translateY(-${radiusInRem}rem) rotate(-${numberAngle}deg)`;
+                    
+                    rouletteWheel.appendChild(numberDiv);
+                });
+
+                rouletteWheel.style.background = `conic-gradient(from ${-SLOT_ANGLE/2}deg, ${gradientParts.join(', ')})`;
+            }
+
+            createFullWheel();
+            window.addEventListener('resize', createFullWheel);
+
+            spinButton.addEventListener('click', () => {
+                spinButton.disabled = true;
+                resultDisplay.textContent = '...';
+                resultDisplay.className = 'w-24 h-24 md:w-32 md:h-32 bg-gray-900 rounded-full border-4 border-yellow-500 flex items-center justify-center shadow-xl z-10 text-3xl md:text-4xl font-black uppercase text-white';
+
+                const roll = Math.random();
+                let resultType, resultValue, resultColorClass;
+              
+                if (roll < PROB_GREEN) {
+                    resultType = 'G';
+                    resultColorClass = 'bg-green-600 text-white';
+                } else if (roll < (PROB_GREEN + PROB_RED)) {
+                    resultType = 'R';
+                    resultColorClass = 'bg-red-600 text-white';
+                } else {
+                    resultType = 'B';
+                    resultColorClass = 'bg-gray-900 text-white border-2 border-gray-600';
+                }
+              
+                const possibleSlots = slots.filter(s => s.type === resultType);
+                const randomSlot = possibleSlots[Math.floor(Math.random() * possibleSlots.length)];
+                resultValue = randomSlot.value;
+
+                const slotIndex = slots.findIndex(s => s.value === resultValue);              
+                const fullRotations = 3 + Math.floor(Math.random() * 3);
+                const randomOffset = (Math.random() - 0.5) * SLOT_ANGLE;
+                const targetRotation = (fullRotations * 360) - (slotIndex * SLOT_ANGLE) - randomOffset;
+                currentRotation = targetRotation; 
+                rouletteWheel.style.transform = `rotate(${targetRotation}deg)`;
+              
+                setTimeout(() => {
+                    spinButton.disabled = false;
+                    
+                    resultDisplay.textContent = resultValue;
+                    if(resultType === 'G') resultDisplay.className += ' text-green-500';
+                    if(resultType === 'R') resultDisplay.className += ' text-red-500';
+                    if(resultType === 'B') resultDisplay.className += ' text-gray-400';
+
+                    const historyItem = document.createElement('div');
+                    historyItem.textContent = resultValue;
+                    historyItem.className = `w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-md shrink-0 ${resultColorClass}`;
+                    
+                    if (historyList.firstChild) {
+                        historyList.insertBefore(historyItem, historyList.firstChild);
+                    } else {
+                        historyList.appendChild(historyItem);
+                    }
+
+                }, 1600);
+            });
+        });
+    </script>
+</body>
+</html>
+
